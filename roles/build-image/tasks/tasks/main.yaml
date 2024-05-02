@@ -15,6 +15,6 @@
 - name: Run build images...
   ansible.builtin.command:
     cmd: diskimage-builder image.yaml
-    chdir: build
+    chdir: /root/build
 
 
