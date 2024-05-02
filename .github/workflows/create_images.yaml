@@ -170,7 +170,7 @@ jobs:
       
       - name: Create configuration images
         working-directory: roles/build-image/
-        run: mkdir -p files; echo "${{ input.build-image }}" > files/image.yaml
+        run: mkdir -p files; echo "${{ inputs.build-image }}" > files/image.yaml
 
       - name: Run ansible-playbook - ${{ matrix.name-playbook }}
         run: |
