@@ -133,7 +133,7 @@ jobs:
           ls -la .vagrant.d/boxes
 
       - name: Save cache Vagrant Boxes
-        id: cache-vagrant-boxes-save
+        if: steps.cache-vagrant-boxes-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: |
@@ -165,6 +165,7 @@ jobs:
         run: sleep 10
 
       - name: Install requirements
+        if: false
         run: |
           ansible-galaxy collection install -r collections/requirements.yaml
 
