@@ -24,7 +24,6 @@
       - kpartx
       - qemu-utils
       - build-essential
-      - python-pip
       - python-lzma
       - yum
       - yum-utils
