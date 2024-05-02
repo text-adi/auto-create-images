@@ -49,6 +49,7 @@ jobs:
 #      name-playbooks: ${{ needs.vars.outputs.name-playbooks }}
 
   build-images:
+    name: Build specific images
     needs: [ vars ]
     runs-on: ubuntu-latest
     strategy:
@@ -149,6 +150,9 @@ jobs:
           VAGRANT_DISABLE_VBOXSYMLINKCREATE: 1
         run: |
           vagrant up
+
+      - name: Create dir
+        run: mkdir -p inventory
 
       - name: Update ansible-playbook hosts
         working-directory: inventory
