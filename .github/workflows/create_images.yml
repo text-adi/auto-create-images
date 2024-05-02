@@ -1,0 +1,107 @@
+name: Build images
+
+on:
+  push:
+    branches: [ dev ]
+
+  workflow_dispatch:
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}-${{ github.event.workflow_call.workflow_file }}"
+  cancel-in-progress: true
+
+
+jobs:
+  vars:
+    name: Generation vars
+    runs-on: ubuntu-latest
+    outputs:
+      name-playbooks: ${{ steps.dynamic.outputs.PLAYBOOKS }}
+      os: ${{ steps.dynamic.outputs.OS }}
+      home: ${{ steps.static.outputs.HOME }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check all playbooks
+        working-directory: playbooks
+        id: _tmp_playbooks
+        run: echo "value=$(echo "["$(ls | sed  "s/.*/'&'/" | paste -sd, -)"]")" >> "$GITHUB_OUTPUT"
+
+      - name: Create list from array of strings
+        id: _tpm_os
+        run: echo "value=['generic/debian10','generic/debian11','generic/debian12','generic/oracle7','generic/oracle8','generic/oracle9','generic/ubuntu2004','generic/ubuntu2010','generic/ubuntu2104','generic/ubuntu2110','generic/ubuntu2204','generic/ubuntu2210','generic/ubuntu2304','generic/ubuntu2310','generic/centos6','generic/centos7','generic/centos8','generic/centos8s','generic/centos9s']" >> "$GITHUB_OUTPUT"
+
+      - name: Create dynamic vars
+        id: dynamic
+        run: |
+          echo "PLAYBOOKS=${{ steps._tmp_playbooks.outputs.value }}" >> "$GITHUB_OUTPUT"
+          echo "OS=$(echo "${{ steps._tpm_os.outputs.value }}" )" >> "$GITHUB_OUTPUT"
+
+      - name: Create static vars
+        id: static
+        run: |
+          echo "HOME=$(echo $HOME)" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: [ vars ]
+    uses: text-adi/ansible-playbook/.github/workflows/test.yaml@dev
+    with:
+      os: ${{ needs.vars.outputs.os }}
+      name-playbooks: ${{ needs.vars.outputs.name-playbooks }}
+
+  build-images:
+    needs: [ vars ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install source
+        run: |
+          wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+
+      - uses: awalsh128/cache-apt-pkgs-action@v1
+        id: apt-cache
+        with:
+          packages: vagrant virtualbox
+          version: 1
+
+      - name: Update
+        run: |
+          sudo apt-get update
+
+      - name: Install vagrant
+        run: |
+          sudo apt-get install -y vagrant
+
+      - name: Install virtualBox
+        run: |
+          sudo apt-get install -y virtualbox
+
+      - name: Check version vagrant
+        run: |
+          vagrant -v
+
+      - name: Check version virtualbox
+        run: |
+          VBoxManage -v
+
+      - name: Update Vagrantfile
+        working-directory: vagrant
+        run: |
+          sed -i "s|{{ home_dir }}|${{ runner.temp }}|g" Vagrantfile
+
+      - name: Check Vagrantfile
+        working-directory: vagrant
+        run: |
+          cat Vagrantfile
+
+      - name: Generate ssh key
+        run: |
+          mkdir -p ${{ runner.temp }}/.ssh
+          ssh-keygen -t rsa -b 2048 -N "" -f ${{ runner.temp }}/.ssh/id_rsa
+
+      - name: Vagrant UP
+        working-directory: vagrant
+        run: |
+          vagrant up
+
+      - name:
