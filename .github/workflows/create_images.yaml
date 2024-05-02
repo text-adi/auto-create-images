@@ -21,6 +21,11 @@ jobs:
       home: ${{ steps.static.outputs.HOME }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          cache: pip
+          python-version: '3.12'
+
       - name: Check all playbooks
         working-directory: playbooks
         id: _tmp_playbooks
@@ -29,11 +34,6 @@ jobs:
       - name: Create list from array of strings
         id: _tpm_os
         run: echo "value=['generic/ubuntu2310',]" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/setup-python@v5
-        with:
-         cache: pip
-         python-version: '3.12'
 
       - name: Run Workflow
         id: build-image-yaml
@@ -45,7 +45,7 @@ jobs:
       - name: Encode image.yaml from base64
         id: _tpm_image-yaml
         run: |
-          python -c 'import yaml, sys; print(yaml.safe_load(sys.stdin))' < data.yaml
+          python -c 'import yaml, sys; print(yaml.safe_load(sys.stdin))' < ${{ steps.build-image-yaml.outputs.filePath }}
           
           echo "value=$( echo $(cat ${{ steps.build-image-yaml.outputs.filePath }}))" >> "$GITHUB_OUTPUT"
 
