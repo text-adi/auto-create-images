@@ -24,8 +24,6 @@
       - kpartx
       - qemu-utils
       - build-essential
-      - yum
-      - yum-utils
       - python-yaml
     state: present # якщо пакет встановлений, не оновлювати
     update_cache: true
