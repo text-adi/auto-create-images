@@ -1,3 +1,4 @@
 .idea/
 .vagrant/
 test
+roles/build-image/files/image.yaml
