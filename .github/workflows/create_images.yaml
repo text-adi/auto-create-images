@@ -177,9 +177,7 @@ jobs:
         id: image_yaml
         working-directory: roles/build-image/files
         run: |
-          echo "imagename=$(echo $( docker run -i --rm mikefarah/yq '.[0].imagename' < image.yaml ) )" >> "$GITHUB_OUTPUT"
-          echo "types=$(echo $( docker run -i --rm mikefarah/yq '.[0].types' < image.yaml ) || 'qcow2' )" >> "$GITHUB_OUTPUT"
-          
+          echo "imagename=$(echo $( docker run -i --rm mikefarah/yq '.[0].imagename' < image.yaml ) )" >> "$GITHUB_OUTPUT"          
           docker run -i --rm mikefarah/yq '.[0].imagename' < image.yaml
 
 
@@ -198,5 +196,5 @@ jobs:
       - name: Archive image
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ steps.image_yaml.outputs.imagename }}.${{ steps.image_yaml.outputs.types }}"
+          name: "${{ steps.image_yaml.outputs.imagename }}"
           path: output
