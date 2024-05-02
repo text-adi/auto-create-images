@@ -168,9 +168,9 @@ jobs:
       - name: Sleep seconds
         run: sleep 10
 
-      - name: Install requirements
-        run: |
-          ansible-galaxy install -r requirements.yml
+#      - name: Install requirements
+#        run: |
+#          ansible-galaxy install -r requirements.yml
 
       - name: Run ansible-playbook - ${{ matrix.name-playbook }}
         run: |
