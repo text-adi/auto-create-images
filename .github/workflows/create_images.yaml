@@ -3,8 +3,8 @@ name: Build images
 on:
   workflow_dispatch:
     inputs:
-      build-image:
-        description: image.yaml by diskimage-builder
+      build-image-base64:
+        description: image.yaml by diskimage-builder in base64
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}-${{ github.event.workflow_call.workflow_file }}"
@@ -29,6 +29,18 @@ jobs:
       - name: Create list from array of strings
         id: _tpm_os
         run: echo "value=['generic/ubuntu2310',]" >> "$GITHUB_OUTPUT"
+
+
+      - name: Encode image.yaml from base64
+        id: _tpm_image-yaml
+        run: |
+          value=$( echo ${{ inputs.build-image-base64 }} | base64 -d )
+          echo $value > data.yaml
+          
+          pip install pyyaml
+          python -c 'import yaml, sys; print(yaml.safe_load(sys.stdin))' < data.yaml
+          
+          echo "value=$value" >> "$GITHUB_OUTPUT"
 
       - name: Create dynamic vars
         id: dynamic
@@ -170,7 +182,14 @@ jobs:
       
       - name: Create configuration images
         working-directory: roles/build-image/
-        run: mkdir -p files; echo "${{ inputs.build-image }}" > files/image.yaml
+        run: |
+          mkdir -p files
+          echo "${{ inputs.build-image }}" > files/image.yaml
+
+      - name: Check image.yaml
+        working-directory: roles/build-image/files
+        run: |
+          cat 
 
       - name: Run ansible-playbook - ${{ matrix.name-playbook }}
         run: |
