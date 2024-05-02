@@ -187,12 +187,19 @@ jobs:
       - name: Install requirements
         run: |
           ansible-galaxy collection install -r collections/requirements.yaml || true
-      
-      - name: Create configuration images
+
+      - name: Create dir
         working-directory: roles/build-image/
         run: |
           mkdir -p files
-          echo "${{ inputs.build-image }}" > files/image.yaml
+
+      - name: Encode and Save image.yaml in file
+        id: build-image-yaml
+        uses: timheuer/base64-to-file@v1.2
+        with:
+          fileName: 'data.yaml'
+          fileDir: 'roles/build-image/files'
+          encodedString: ${{ inputs.build-image-base64 }}
 
       - name: Check image.yaml
         working-directory: roles/build-image/files
