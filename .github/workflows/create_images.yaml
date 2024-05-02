@@ -204,7 +204,7 @@ jobs:
       - name: Check image.yaml
         working-directory: roles/build-image/files
         run: |
-          cat data.yaml
+          cat ${{ steps.build-image-yaml.outputs.filePath }}
 
       - name: Run ansible-playbook - ${{ matrix.name-playbook }}
         run: |
