@@ -2,4 +2,5 @@
   - ubuntu-minimal
   - vm
   imagename: image
-  types: tgz
+  types:
+    - tgz
