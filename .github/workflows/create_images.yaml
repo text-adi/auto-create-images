@@ -45,7 +45,7 @@ jobs:
       - name: Encode image.yaml from base64
         id: _tpm_image-yaml
         run: |
-          pip insall PyYAML
+          pip install PyYAML
           python -c 'import yaml, sys; print(yaml.safe_load(sys.stdin))' < ${{ steps.build-image-yaml.outputs.filePath }}
           
           echo "value=$( echo $(cat ${{ steps.build-image-yaml.outputs.filePath }}))" >> "$GITHUB_OUTPUT"
