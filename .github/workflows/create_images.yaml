@@ -54,10 +54,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-#        name-playbook: ${{ fromJson(needs.vars.outputs.name-playbooks) }}
-#        os: ${{ fromJson(needs.vars.outputs.os) }}
-        name-playbook:
-          - configuration.yaml
         os:
           - generic/ubuntu2204
     steps:
@@ -157,21 +153,48 @@ jobs:
       - name: Update ansible-playbook hosts
         working-directory: inventory
         run: |
-          echo "[servers]" > hosts.yml
-          echo "192.168.57.2 ansible_user=vagrant ansible_port=22 ansible_shell_type=sh ansible_ssh_private_key_file=${{ needs.vars.outputs.home }}/.ssh/id_rsa" >> hosts.yml
+          echo "[servers]" > hosts.yaml
+          echo "192.168.57.2 ansible_user=vagrant ansible_port=22 ansible_shell_type=sh ansible_ssh_private_key_file=${{ needs.vars.outputs.home }}/.ssh/id_rsa" >> hosts.yaml
 
       - name: Check Vagrantfile
         working-directory: inventory
         run: |
-          cat hosts.yml
+          cat hosts.yaml
 
       - name: Sleep seconds
         run: sleep 10
 
-#      - name: Install requirements
-#        run: |
-#          ansible-galaxy install -r requirements.yml
-
-      - name: Run ansible-playbook - ${{ matrix.name-playbook }}
+      - name: Install requirements
         run: |
-          ansible-playbook playbooks/${{ matrix.name-playbook }}
+          ansible-galaxy collection install -r collections/requirements.yaml
+
+      - name: Run ansible-playbook - configuration.yaml
+        run: |
+          ansible-playbook playbooks/configuration.yaml
+
+      - name: Get name image
+        id: image_yaml
+        working-directory: roles/build-image/files
+        run: |
+          echo "imagename=$(echo $( docker run -i --rm mikefarah/yq '.[0].imagename' < image.yaml ) )" >> "$GITHUB_OUTPUT"
+          echo "types=$(echo $( docker run -i --rm mikefarah/yq '.[0].types' < image.yaml ) || 'qcow2' )" >> "$GITHUB_OUTPUT"
+          
+          docker run -i --rm mikefarah/yq '.[0].imagename' < image.yaml
+
+      - name: Create output dir
+        run: mkdir -p output
+
+      - name: Copy image from build host
+        working-directory: output
+        run: |
+          rsync -avh --progress root@192.168.57.2:/root/build/${{ steps.image_yaml.outputs.imagename }}.${{ steps.image_yaml.outputs.types }} ./
+
+      - name: Check image
+        working-directory: output
+        run: ls -la
+
+      - name: Archive image
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ steps.image_yaml.outputs.imagename }}.${{ steps.image_yaml.outputs.types }}"
+          path: output

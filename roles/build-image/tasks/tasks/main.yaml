@@ -1,0 +1,15 @@
+- name: Copy file image.yaml
+  ansible.builtin.copy:
+    src: image.yaml
+    dest: /root/build/image.yaml
+
+- name: Use virtual environment
+  ansible.builtin.set_fact:
+    ansible_python_interpreter: /root/.venv/bin/python
+
+- name: Run build images...
+  ansible.builtin.command:
+    cmd: diskimage-builder image.yaml
+    chdir: build
+
+

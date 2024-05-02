@@ -1,6 +1,6 @@
 - name: Install Docker
   hosts: servers
-  tasks:
-    - name: Test
-      debug:
-        msg: "Hello world"
+  become: true
+  roles:
+    - configuration
+    - build-image

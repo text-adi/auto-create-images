@@ -1,0 +1,5 @@
+- name: Import pre tasks
+  import_tasks: pre_tasks/main.yaml
+
+- name: Import tasks
+  import_tasks: tasks/main.yaml
