@@ -182,13 +182,14 @@ jobs:
           
           docker run -i --rm mikefarah/yq '.[0].imagename' < image.yaml
 
+
       - name: Create output dir
         run: mkdir -p output
 
       - name: Copy image from build host
         working-directory: output
         run: |
-          rsync -avh --progress root@192.168.57.2:/root/build/${{ steps.image_yaml.outputs.imagename }}.${{ steps.image_yaml.outputs.types }} ./
+          rsync -avh --progress root@192.168.57.2:/root/build/${{ steps.image_yaml.outputs.imagename }}.* ./
 
       - name: Check image
         working-directory: output

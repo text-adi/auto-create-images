@@ -13,4 +13,8 @@
     cmd: /root/.venv/bin/diskimage-builder image.yaml
     chdir: /root/build
 
+- name: Delete file
+  ansible.builtin.file:
+    path: /root/build/image.yaml
+    state: absent
 
