@@ -203,7 +203,6 @@ jobs:
           encodedString: ${{ inputs.build-image-base64 }}
 
       - name: Check image.yaml
-        working-directory: roles/build-image/files
         run: |
           cat ${{ steps.build-image-yaml.outputs.filePath }}
 
