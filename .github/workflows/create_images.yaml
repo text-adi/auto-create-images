@@ -30,7 +30,7 @@ jobs:
         id: _tpm_os
         run: echo "value=['generic/ubuntu2310',]" >> "$GITHUB_OUTPUT"
 
-
+      - uses: actions/setup-python@v5
       - name: Encode image.yaml from base64
         id: _tpm_image-yaml
         run: |
@@ -75,11 +75,11 @@ jobs:
           wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
           echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 
-#      - uses: awalsh128/cache-apt-pkgs-action@v1
-#        id: apt-cache
-#        with:
-#          packages: vagrant virtualbox ansible-core
-#          version: 1
+      - uses: awalsh128/cache-apt-pkgs-action@v1
+        id: apt-cache
+        with:
+          packages: vagrant virtualbox ansible-core
+          version: 1
 
       - name: Update
         run: |
