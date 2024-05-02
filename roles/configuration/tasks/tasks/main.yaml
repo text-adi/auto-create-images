@@ -23,7 +23,6 @@
       - debootstrap
       - kpartx
       - qemu-utils
-      - python-dev
       - build-essential
       - python-pip
       - python-lzma
