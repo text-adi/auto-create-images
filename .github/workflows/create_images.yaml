@@ -38,11 +38,10 @@ jobs:
       - name: Encode image.yaml from base64
         id: _tpm_image-yaml
         run: |
-          pip install pyyaml base64
-          
           value=$( echo ${{ inputs.build-image-base64 }} | base64 -d )
           echo $value > data.yaml
           
+          pip install pyyaml
           python -c 'import yaml, sys; print(yaml.safe_load(sys.stdin))' < data.yaml
           
           echo "value=$value" >> "$GITHUB_OUTPUT"
