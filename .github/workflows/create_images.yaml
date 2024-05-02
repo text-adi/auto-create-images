@@ -88,6 +88,7 @@ jobs:
         with:
           packages: vagrant virtualbox ansible-core
           version: 1
+          execute_install_scripts: true
 
       - name: Update
         run: |
