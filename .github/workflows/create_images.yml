@@ -28,7 +28,7 @@ jobs:
 
       - name: Create list from array of strings
         id: _tpm_os
-        run: echo "value=['generic/debian10','generic/debian11','generic/debian12','generic/oracle7','generic/oracle8','generic/oracle9','generic/ubuntu2004','generic/ubuntu2010','generic/ubuntu2104','generic/ubuntu2110','generic/ubuntu2204','generic/ubuntu2210','generic/ubuntu2304','generic/ubuntu2310','generic/centos6','generic/centos7','generic/centos8','generic/centos8s','generic/centos9s']" >> "$GITHUB_OUTPUT"
+        run: echo "value=['generic/ubuntu2204',]" >> "$GITHUB_OUTPUT"
 
       - name: Create dynamic vars
         id: dynamic
@@ -41,16 +41,24 @@ jobs:
         run: |
           echo "HOME=$(echo $HOME)" >> "$GITHUB_OUTPUT"
 
-  test:
-    needs: [ vars ]
-    uses: text-adi/ansible-playbook/.github/workflows/test.yaml@dev
-    with:
-      os: ${{ needs.vars.outputs.os }}
-      name-playbooks: ${{ needs.vars.outputs.name-playbooks }}
+#  test:
+#    needs: [ vars ]
+#    uses: text-adi/ansible-playbook/.github/workflows/test.yaml@dev
+#    with:
+#      os: ${{ needs.vars.outputs.os }}
+#      name-playbooks: ${{ needs.vars.outputs.name-playbooks }}
 
   build-images:
     needs: [ vars ]
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+#        name-playbook: ${{ fromJson(needs.vars.outputs.name-playbooks) }}
+#        os: ${{ fromJson(needs.vars.outputs.os) }}
+        name-playbook:
+          - configuration.yaml
+        os:
+          - generic/ubuntu2204
     steps:
       - uses: actions/checkout@v4
       - name: Install source
@@ -58,11 +66,11 @@ jobs:
           wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
           echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 
-      - uses: awalsh128/cache-apt-pkgs-action@v1
-        id: apt-cache
-        with:
-          packages: vagrant virtualbox
-          version: 1
+#      - uses: awalsh128/cache-apt-pkgs-action@v1
+#        id: apt-cache
+#        with:
+#          packages: vagrant virtualbox ansible-core
+#          version: 1
 
       - name: Update
         run: |
@@ -76,6 +84,10 @@ jobs:
         run: |
           sudo apt-get install -y virtualbox
 
+      - name: Install ansible
+        run: |
+          sudo apt-get install -y ansible-core
+
       - name: Check version vagrant
         run: |
           vagrant -v
@@ -84,10 +96,15 @@ jobs:
         run: |
           VBoxManage -v
 
+      - name: Check version ansible-core
+        run: |
+          ansible --version
+
       - name: Update Vagrantfile
         working-directory: vagrant
         run: |
-          sed -i "s|{{ home_dir }}|${{ runner.temp }}|g" Vagrantfile
+          sed -i "s|{{ box }}|${{ matrix.os }}|g" Vagrantfile
+          sed -i "s|{{ home_dir }}|${{ needs.vars.outputs.home }}|g" Vagrantfile
 
       - name: Check Vagrantfile
         working-directory: vagrant
@@ -95,13 +112,62 @@ jobs:
           cat Vagrantfile
 
       - name: Generate ssh key
+        working-directory: ${{ needs.vars.outputs.home }}
         run: |
-          mkdir -p ${{ runner.temp }}/.ssh
-          ssh-keygen -t rsa -b 2048 -N "" -f ${{ runner.temp }}/.ssh/id_rsa
+          mkdir -p .ssh
+          ssh-keygen -t rsa -b 2048 -N "" -f .ssh/id_rsa
+
+      - name: Restore cache Vagrant Boxes
+        id: cache-vagrant-boxes-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ needs.vars.outputs.home }}/.vagrant.d/boxes
+          key: vagrant-${{ runner.os }}-boxes-${{ matrix.os }}
+
+      - name: Vagrant download box
+        if: steps.cache-vagrant-boxes-restore.outputs.cache-hit != 'true'
+        run: |
+          vagrant box add ${{ matrix.os }} --provider virtualbox
+
+      - name: Check box
+        working-directory: ${{ needs.vars.outputs.home }}
+        run: |
+          ls -la .vagrant.d/boxes
+
+      - name: Save cache Vagrant Boxes
+        id: cache-vagrant-boxes-save
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ needs.vars.outputs.home }}/.vagrant.d/boxes
+          key: ${{ steps.cache-vagrant-boxes-restore.outputs.cache-primary-key }}
 
       - name: Vagrant UP
         working-directory: vagrant
+        env:
+          VAGRANT_DISABLE_VBOXSYMLINKCREATE: 1
         run: |
           vagrant up
 
-      - name:
+      - name: Update ansible-playbook hosts
+        working-directory: inventory
+        run: |
+          echo "[servers]" > hosts.yml
+          echo "192.168.57.2 ansible_user=vagrant ansible_port=22 ansible_shell_type=sh ansible_ssh_private_key_file=${{ needs.vars.outputs.home }}/.ssh/id_rsa" >> hosts.yml
+
+      - name: Check Vagrantfile
+        working-directory: inventory
+        run: |
+          cat hosts.yml
+
+      - name: Sleep seconds
+        run: sleep 10
+
+      - name: Install requirements
+        run: |
+          ansible-galaxy install -r requirements.yml
+
+      - name: Run ansible-playbook - ${{ matrix.name-playbook }}
+        run: |
+          ansible-playbook playbooks/${{ matrix.name-playbook }}

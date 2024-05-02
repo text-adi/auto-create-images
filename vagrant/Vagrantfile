@@ -1,0 +1,34 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+Vagrant.require_version ">= 2.4.0"
+
+
+CONF = {
+    "cpu" => "1",
+    "memory" => "2048",
+    "box" => "{{ box }}"
+}
+IP="192.168.57.2"
+ssh_pub_key = File.readlines("{{ home_dir }}/.ssh/id_rsa.pub").first.strip
+
+
+Vagrant.configure("2") do |config|
+  config.vm.define "node-1" do |node|
+    node.vm.boot_timeout = 300
+    node.vm.network "private_network", ip: "#{IP}"
+
+    node.vm.box = CONF["box"]
+    node.vm.hostname = "node-1"
+    node.vm.provider "virtualbox" do |vb|
+        vb.gui = false
+        vb.cpus = CONF["cpu"]
+        vb.memory = CONF["memory"]
+
+    end
+
+    node.vm.provision 'shell', inline: 'mkdir -p /root/.ssh'
+    node.vm.provision 'shell', inline: "echo #{ssh_pub_key} >> /root/.ssh/authorized_keys"
+    node.vm.provision 'shell', inline: "echo #{ssh_pub_key} >> /home/vagrant/.ssh/authorized_keys", privileged: false
+
+  end
+end
