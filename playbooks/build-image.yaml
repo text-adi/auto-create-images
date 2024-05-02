@@ -1,4 +1,4 @@
-- name: Install Docker
+- name: Build images
   hosts: servers
   become: true
   roles:
