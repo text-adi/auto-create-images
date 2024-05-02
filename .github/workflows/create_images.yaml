@@ -35,17 +35,19 @@ jobs:
          cache: pip
          python-version: '3.12'
 
+      - name: Run Workflow
+        id: build-image-yaml
+        uses: timheuer/base64-to-file@v1.2
+        with:
+          fileName: 'data.yaml'
+          encodedString: ${{ inputs.build-image-base64 }}
+
       - name: Encode image.yaml from base64
         id: _tpm_image-yaml
         run: |
-          value=$( echo ${{ inputs.build-image-base64 }} | base64 -d )
-          echo $value > data.yaml
-          cat data.yaml
-          
-          pip install pyyaml
           python -c 'import yaml, sys; print(yaml.safe_load(sys.stdin))' < data.yaml
           
-          echo "value=$value" >> "$GITHUB_OUTPUT"
+          echo "value=$( echo $(cat ${{ steps.build-image-yaml.outputs.filePath }}))" >> "$GITHUB_OUTPUT"
 
       - name: Create dynamic vars
         id: dynamic
